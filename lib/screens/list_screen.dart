@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
-import '../widgets/custom_filter_chip.dart';
 import '../models/recipe_model.dart';
 import '../services/api_service.dart';
+import '../services/storage_service.dart';
 import 'detail_screen.dart';
 import 'favorite_screen.dart';
+import 'login_screen.dart';
 
 class ListScreen extends StatefulWidget {
-  final ContentType type;
   final ApiService? apiService;
+  final StorageService? storageService;
 
   const ListScreen({
     super.key,
-    this.type = ContentType.recipes,
     this.apiService,
+    this.storageService,
   });
 
   @override
@@ -21,38 +22,17 @@ class ListScreen extends StatefulWidget {
 
 class _ListScreenState extends State<ListScreen> {
   late final ApiService _apiService;
-  List<RecipeModel> _recipe = [];
+  late final StorageService _storageService;
+  List<Recipe> _recipes = [];
   bool _isLoading = true;
   String? _errorMessage;
-  String? _selectedTags;
 
   @override
   void initState() {
     super.initState();
     _apiService = widget.apiService ?? ApiService();
+    _storageService = widget.storageService ?? StorageService();
     _fetchRecipes();
-  }
-
-  List<String> get _tags {
-    final set = <String>{};
-    for (final a in _recipe) {
-      final trimmed = a.tags.trim();
-      if (trimmed.isNotEmpty) {
-        set.add(trimmed);
-      }
-    }
-    final list = set.toList();
-    list.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    return list;
-  }
-
-  List<RecipeModel> get _filteredRecipes{
-    if (_selectedTags == null || _selectedTags!.isEmpty) {
-      return _recipe;
-    }
-    return _recipe
-        .where((a) => a.tags.trim() == _selectedTags!.trim())
-        .toList();
   }
 
   Future<void> _fetchRecipes() async {
@@ -62,10 +42,10 @@ class _ListScreenState extends State<ListScreen> {
     });
 
     try {
-      final results = await _apiService.fetchList(widget.type);
+      final results = await _apiService.getRecipes();
       if (mounted) {
         setState(() {
-          _recipe = results;
+          _recipes = results;
           _isLoading = false;
         });
       }
@@ -79,10 +59,19 @@ class _ListScreenState extends State<ListScreen> {
     }
   }
 
-  Widget _buildThumbnail(String? imageUrl) {
+  Future<void> _handleLogout() async {
+    await _storageService.logout();
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
+  }
+
+  Widget _buildThumbnail(String imageUrl) {
     const double size = 70.0;
 
-    if (imageUrl == null || imageUrl.trim().isEmpty) {
+    if (imageUrl.trim().isEmpty) {
       return Container(
         width: size,
         height: size,
@@ -115,7 +104,7 @@ class _ListScreenState extends State<ListScreen> {
                   strokeWidth: 2,
                   value: loadingProgress.expectedTotalBytes != null
                       ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
+                          loadingProgress.expectedTotalBytes!
                       : null,
                 ),
               ),
@@ -134,7 +123,7 @@ class _ListScreenState extends State<ListScreen> {
     );
   }
 
-  Widget _buildItemCard(RecipeModel recipe) {
+  Widget _buildItemCard(Recipe recipe) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -145,25 +134,23 @@ class _ListScreenState extends State<ListScreen> {
           await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => DetailScreen(type: widget.type, id: recipe.id),
+              builder: (_) => DetailScreen(id: recipe.id),
             ),
           );
         },
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _buildThumbnail(recipe.imageUrl),
+              _buildThumbnail(recipe.image),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      recipe.name.isNotEmpty
-                          ? recipe.name
-                          : 'Tidak ada nama',
+                      recipe.name.isNotEmpty ? recipe.name : 'Tidak ada nama',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -173,7 +160,7 @@ class _ListScreenState extends State<ListScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      recipe.tags.isNotEmpty ? recipe.tags : 'Unknown',
+                      '${recipe.cuisine} • ⭐ ${recipe.rating}',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey.shade700,
@@ -222,7 +209,7 @@ class _ListScreenState extends State<ListScreen> {
       );
     }
 
-    if (_recipe.isEmpty) {
+    if (_recipes.isEmpty) {
       return RefreshIndicator(
         onRefresh: _fetchRecipes,
         child: ListView(
@@ -232,7 +219,7 @@ class _ListScreenState extends State<ListScreen> {
               height: MediaQuery.of(context).size.height * 0.7,
               child: const Center(
                 child: Text(
-                  'Belum ada data tersedia saat ini.',
+                  'Belum ada data resep tersedia saat ini.',
                   key: Key('list_empty_text'),
                   style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
@@ -243,43 +230,14 @@ class _ListScreenState extends State<ListScreen> {
       );
     }
 
-    final displayed = _filteredRecipes;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: displayed.isEmpty
-              ? RefreshIndicator(
-                  onRefresh: _fetchRecipes,
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    children: [
-                      SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.6,
-                        child: const Center(
-                          child: Text(
-                            'Tidak ada data untuk penerbit ini.',
-                            key: Key('filter_empty_text'),
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _fetchRecipes,
-                  child: ListView.builder(
-                    itemCount: displayed.length,
-                    itemBuilder: (context, index) {
-                      final article = displayed[index];
-                      return _buildItemCard(article);
-                    },
-                  ),
-                ),
-        ),
-      ],
+    return RefreshIndicator(
+      onRefresh: _fetchRecipes,
+      child: ListView.builder(
+        itemCount: _recipes.length,
+        itemBuilder: (context, index) {
+          return _buildItemCard(_recipes[index]);
+        },
+      ),
     );
   }
 
@@ -287,7 +245,7 @@ class _ListScreenState extends State<ListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.type.displayName),
+        title: const Text('Resep Masakan'),
         actions: [
           IconButton(
             key: const Key('list_favorite_button'),
@@ -297,10 +255,19 @@ class _ListScreenState extends State<ListScreen> {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => FavoriteScreen(apiService: _apiService),
+                  builder: (_) => FavoriteScreen(
+                    apiService: _apiService,
+                    storageService: _storageService,
+                  ),
                 ),
               );
             },
+          ),
+          IconButton(
+            key: const Key('list_logout_button'),
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: _handleLogout,
           ),
         ],
       ),

@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/recipe_model.dart';
 
-/// Custom exception for API errors
 class ApiException implements Exception {
   final String message;
   final int? statusCode;
@@ -17,35 +16,30 @@ class ApiException implements Exception {
 }
 
 class ApiService {
-  static const String baseUrl = ' https://dummyjson.com/recipes';
+  static const String baseUrl = 'https://dummyjson.com/recipes';
   static const Duration requestTimeout = Duration(seconds: 30);
 
   final http.Client _client;
 
   ApiService({http.Client? client}) : _client = client ?? http.Client();
 
-  Future<List<RecipeModel>> fetchList(
-    ContentType type, {
-    int limit = 50,
-  }) async {
-    final uri = Uri.parse('$baseUrl/${type.endpoint}/?limit=$limit');
+  Future<List<Recipe>> getRecipes() async {
+    final uri = Uri.parse(baseUrl);
 
     try {
       final response = await _client.get(uri).timeout(requestTimeout);
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> body = jsonDecode(response.body);
-        final List<dynamic> results = body['results'] as List<dynamic>? ?? [];
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        final List<dynamic> recipesJson =
+            data['recipes'] as List<dynamic>? ?? [];
 
-        return results
-            .map((item) => RecipeModel.fromJson(
-                  item as Map<String, dynamic>,
-                  defaultType: type,
-                ))
+        return recipesJson
+            .map((item) => Recipe.fromJson(item as Map<String, dynamic>))
             .toList();
       } else {
         throw ApiException(
-          'Gagal mengambil daftar ${type.displayName}. Server merespon dengan status ${response.statusCode}.',
+          'Gagal mengambil daftar resep. Server merespon dengan status ${response.statusCode}.',
           statusCode: response.statusCode,
         );
       }
@@ -71,23 +65,23 @@ class ApiService {
     }
   }
 
-  Future<RecipeModel> fetchDetail(ContentType type, int id) async {
-    final uri = Uri.parse('$baseUrl/${type.endpoint}/$id/');
+  Future<Recipe> getRecipeDetail(int id) async {
+    final uri = Uri.parse('$baseUrl/$id');
 
     try {
       final response = await _client.get(uri).timeout(requestTimeout);
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> body = jsonDecode(response.body);
-        return RecipeModel.fromJson(body, defaultType: type);
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        return Recipe.fromJson(data);
       } else if (response.statusCode == 404) {
         throw ApiException(
-          'Data ${type.displayName} dengan ID $id tidak ditemukan.',
+          'Resep dengan ID $id tidak ditemukan.',
           statusCode: 404,
         );
       } else {
         throw ApiException(
-          'Gagal mengambil detail ${type.displayName}. Status: ${response.statusCode}.',
+          'Gagal mengambil detail resep. Status: ${response.statusCode}.',
           statusCode: response.statusCode,
         );
       }

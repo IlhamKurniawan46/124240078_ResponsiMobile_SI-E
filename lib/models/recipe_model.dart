@@ -1,7 +1,6 @@
 import 'content_type.dart';
 export 'content_type.dart';
 
-/// Generic data model for Spaceflight News API content (news, blog, report).
 class RecipeModel {
   final int id;
   final String name;
@@ -23,15 +22,10 @@ class RecipeModel {
     required this.type,
   });
 
-  /// Factory to parse from API JSON or local SharedPreferences JSON.
-  /// 
-  /// Per PRD & SNAPI v4 response verification, [tags] is extracted from `news_site`.
-  /// A fallback to `tags`, `tagss[0].name`, or 'Unknown' is included for robustness.
   factory RecipeModel.fromJson(
     Map<String, dynamic> json, {
     ContentType? defaultType,
   }) {
-    // Resolve ContentType
     ContentType resolvedType = defaultType ?? ContentType.recipes;
     if (json['type'] != null) {
       final typeString = json['type'].toString().trim().toLowerCase();
@@ -43,7 +37,6 @@ class RecipeModel {
       }
     }
 
-    // Resolve tags: prioritized from 'news_site', with fallback to 'tags' or tagss list
     String resolvedtags = 'Unknown';
     if (json['news_site'] != null &&
         json['news_site'].toString().trim().isNotEmpty) {
@@ -74,7 +67,6 @@ class RecipeModel {
     );
   }
 
-  /// Converts the model to JSON Map (used for persisting favorites in SharedPreferences)
   Map<String, dynamic> toJson() {
     return {
       'id': id,

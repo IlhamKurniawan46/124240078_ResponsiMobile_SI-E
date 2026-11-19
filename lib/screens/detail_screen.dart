@@ -33,7 +33,6 @@ class _DetailScreenState extends State<DetailScreen> {
   bool _isLoading = true;
   String? _errorMessage;
 
-  // Variabel state lokal untuk ikon hati
   bool _isFavorite = false;
 
   @override
@@ -239,7 +238,6 @@ class _DetailScreenState extends State<DetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Banner Gambar Utama
           _buildBannerImage(_recipe!.imageUrl),
 
           Padding(
@@ -247,7 +245,6 @@ class _DetailScreenState extends State<DetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Judul Lengkap
                 Text(
                   _recipe!.name.isNotEmpty
                       ? _recipe!.name
@@ -260,7 +257,6 @@ class _DetailScreenState extends State<DetailScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Author / Publisher (news_site)
                 Row(
                   children: [
                     const Icon(
@@ -285,7 +281,6 @@ class _DetailScreenState extends State<DetailScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                // Tanggal Publish (string ISO apa adanya)
                 Row(
                   children: [
                     const Icon(
@@ -320,7 +315,6 @@ class _DetailScreenState extends State<DetailScreen> {
                   ),
                 ),
 
-                // Padding ekstra agar tidak tertutup FAB
                 const SizedBox(height: 80),
               ],
             ),

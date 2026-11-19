@@ -33,7 +33,6 @@ class _ListScreenState extends State<ListScreen> {
     _fetchRecipes();
   }
 
-  /// Extracts unique authors from the fetched articles and sorts them alphabetically.
   List<String> get _tags {
     final set = <String>{};
     for (final a in _recipe) {

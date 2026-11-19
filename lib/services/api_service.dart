@@ -16,7 +16,6 @@ class ApiException implements Exception {
       'ApiException${statusCode != null ? ' ($statusCode)' : ''}: $message';
 }
 
-/// Service to interact with Spaceflight News API (SNAPI) v4
 class ApiService {
   static const String baseUrl = ' https://dummyjson.com/recipes';
   static const Duration requestTimeout = Duration(seconds: 30);
@@ -25,9 +24,6 @@ class ApiService {
 
   ApiService({http.Client? client}) : _client = client ?? http.Client();
 
-  /// Fetches a list of articles, blogs, or reports with a given [limit].
-  ///
-  /// Calls GET `/v4/{articles|blogs|reports}/?limit={limit}`
   Future<List<RecipeModel>> fetchList(
     ContentType type, {
     int limit = 50,
@@ -75,9 +71,6 @@ class ApiService {
     }
   }
 
-  /// Fetches detail for a single article, blog, or report by its [id].
-  ///
-  /// Calls GET `/v4/{articles|blogs|reports}/{id}/`
   Future<RecipeModel> fetchDetail(ContentType type, int id) async {
     final uri = Uri.parse('$baseUrl/${type.endpoint}/$id/');
 

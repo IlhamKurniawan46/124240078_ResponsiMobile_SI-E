@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../models/recipe_model.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
@@ -7,19 +6,15 @@ import '../utils/constants.dart';
 import '../utils/snackbar_helper.dart';
 
 class DetailScreen extends StatefulWidget {
-  final ContentType type;
   final int id;
   final ApiService? apiService;
   final StorageService? storageService;
-  final Future<bool> Function(Uri, {LaunchMode mode})? urlLauncher;
 
   const DetailScreen({
     super.key,
-    this.type = ContentType.recipes,
     this.id = 0,
     this.apiService,
     this.storageService,
-    this.urlLauncher,
   });
 
   @override
@@ -29,10 +24,9 @@ class DetailScreen extends StatefulWidget {
 class _DetailScreenState extends State<DetailScreen> {
   late final ApiService _apiService;
   late final StorageService _storageService;
-  RecipeModel? _recipe;
+  Recipe? _recipe;
   bool _isLoading = true;
   String? _errorMessage;
-
   bool _isFavorite = false;
 
   @override
@@ -45,7 +39,7 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Future<void> _checkFavoriteStatus() async {
-    final fav = await _storageService.isFavorite(widget.type, widget.id);
+    final fav = await _storageService.isFavorite(widget.id);
     if (mounted) {
       setState(() {
         _isFavorite = fav;
@@ -55,7 +49,7 @@ class _DetailScreenState extends State<DetailScreen> {
 
   Future<void> _toggleFavorite() async {
     if (_isFavorite) {
-      await _storageService.removeFavorite(widget.type, widget.id);
+      await _storageService.removeFavorite(widget.id);
       if (!mounted) return;
       setState(() {
         _isFavorite = false;
@@ -85,7 +79,7 @@ class _DetailScreenState extends State<DetailScreen> {
     });
 
     try {
-      final data = await _apiService.fetchDetail(widget.type, widget.id);
+      final data = await _apiService.getRecipeDetail(widget.id);
       if (mounted) {
         setState(() {
           _recipe = data;
@@ -102,41 +96,10 @@ class _DetailScreenState extends State<DetailScreen> {
     }
   }
 
-  Future<void> _openWeb(String? urlString) async {
-    if (urlString == null || urlString.trim().isEmpty) {
-      if (mounted) {
-        SnackbarHelper.showError(context, AppConstants.openWebErrorMessage);
-      }
-      return;
-    }
-
-    final uri = Uri.tryParse(urlString.trim());
-    if (uri == null) {
-      if (mounted) {
-        SnackbarHelper.showError(context, AppConstants.openWebErrorMessage);
-      }
-      return;
-    }
-
-    try {
-      final launched = widget.urlLauncher != null
-          ? await widget.urlLauncher!(uri, mode: LaunchMode.externalApplication)
-          : await launchUrl(uri, mode: LaunchMode.externalApplication);
-
-      if (!launched && mounted) {
-        SnackbarHelper.showError(context, AppConstants.openWebErrorMessage);
-      }
-    } catch (_) {
-      if (mounted) {
-        SnackbarHelper.showError(context, AppConstants.openWebErrorMessage);
-      }
-    }
-  }
-
-  Widget _buildBannerImage(String? imageUrl) {
+  Widget _buildBannerImage(String imageUrl) {
     const double bannerHeight = 250.0;
 
-    if (imageUrl == null || imageUrl.trim().isEmpty) {
+    if (imageUrl.trim().isEmpty) {
       return Container(
         height: bannerHeight,
         width: double.infinity,
@@ -189,6 +152,28 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
+  Widget _buildInfoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.grey.shade700),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBody() {
     if (_isLoading) {
       return const Center(
@@ -234,88 +219,116 @@ class _DetailScreenState extends State<DetailScreen> {
       );
     }
 
+    final recipe = _recipe!;
+    final mealTypesText = recipe.mealType.isNotEmpty
+        ? ' • ${recipe.mealType.join(', ')}'
+        : '';
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildBannerImage(_recipe!.imageUrl),
-
+          _buildBannerImage(recipe.image),
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _recipe!.name.isNotEmpty
-                      ? _recipe!.name
-                      : 'Tidak ada judul',
+                  recipe.name.isNotEmpty ? recipe.name : 'Tidak ada judul',
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                     height: 1.3,
                   ),
                 ),
-                const SizedBox(height: 12),
-
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.person,
-                      size: 18,
-                      color: Colors.grey,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        _recipe!.tags.isNotEmpty
-                            ? _recipe!.tags
-                            : 'Unknown',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade800,
-                        ),
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 6),
+                Text(
+                  '${recipe.cuisine}$mealTypesText',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                  ),
                 ),
-                const SizedBox(height: 8),
-
-                Row(
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    const Icon(
-                      Icons.calendar_today,
-                      size: 16,
-                      color: Colors.grey,
+                    _buildInfoChip(
+                      Icons.star,
+                      '${recipe.rating} (${recipe.reviewCount})',
                     ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        _recipe!.publishedAt.isNotEmpty
-                            ? _recipe!.publishedAt
-                            : '-',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
+                    _buildInfoChip(Icons.speed, recipe.difficulty),
+                    _buildInfoChip(
+                      Icons.timer_outlined,
+                      'Persiapan ${recipe.prepTimeMinutes} mnt',
+                    ),
+                    _buildInfoChip(
+                      Icons.local_fire_department_outlined,
+                      'Masak ${recipe.cookTimeMinutes} mnt',
+                    ),
+                    _buildInfoChip(
+                      Icons.people_outline,
+                      '${recipe.servings} porsi',
+                    ),
+                    _buildInfoChip(
+                      Icons.bolt,
+                      '${recipe.caloriesPerServing} kal/porsi',
                     ),
                   ],
                 ),
                 const Divider(height: 32),
-
-                // Summary
-                Text(
-                  _recipe!.summary.isNotEmpty
-                      ? _recipe!.summary
-                      : 'Tidak ada ringkasan tersedia.',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    height: 1.6,
+                const Text(
+                  'Bahan-bahan',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-
-                const SizedBox(height: 80),
+                const SizedBox(height: 8),
+                ...recipe.ingredients.map(
+                  (ingredient) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4.0),
+                    child: Text(
+                      '• $ingredient',
+                      style: const TextStyle(fontSize: 15, height: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Langkah Memasak',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...List.generate(recipe.instructions.length, (index) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CircleAvatar(
+                          radius: 12,
+                          child: Text(
+                            '${index + 1}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            recipe.instructions[index],
+                            style: const TextStyle(fontSize: 15, height: 1.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
               ],
             ),
           ),
@@ -328,7 +341,7 @@ class _DetailScreenState extends State<DetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Detail ${widget.type.displayName}'),
+        title: const Text('Detail Resep'),
         actions: [
           IconButton(
             key: const Key('detail_favorite_button'),
@@ -342,14 +355,6 @@ class _DetailScreenState extends State<DetailScreen> {
         ],
       ),
       body: _buildBody(),
-      floatingActionButton: _recipe == null
-          ? null
-          : FloatingActionButton(
-              key: const Key('detail_open_web_fab'),
-              tooltip: 'Buka Web',
-              onPressed: () => _openWeb(_recipe!.url),
-              child: const Icon(Icons.open_in_new),
-            ),
     );
   }
 }

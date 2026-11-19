@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:latres/utils/app_theme.dart';
+import '../utils/app_theme.dart';
+import '../utils/constants.dart';
+import '../utils/snackbar_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'home_screen.dart';
+import 'list_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,11 +24,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _checkLogin() async {
     final loginData = await SharedPreferences.getInstance();
-    final adaLogin = loginData.getBool('loginData') ?? false;
+    final adaLogin = loginData.getBool(AppConstants.keyIsLoggedIn) ?? false;
     if (adaLogin && mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        MaterialPageRoute(builder: (context) => const ListScreen()),
       );
     }
   }
@@ -35,19 +37,18 @@ class _LoginScreenState extends State<LoginScreen> {
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (username == 'ilham' && password == '078') {
+    if (username == AppConstants.validUsername &&
+        password == AppConstants.validPassword) {
       final loginData = await SharedPreferences.getInstance();
-      await loginData.setBool('loginData', true);
+      await loginData.setBool(AppConstants.keyIsLoggedIn, true);
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(builder: (context) => const ListScreen()),
         );
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Username atau password salah')),
-      );
+      SnackbarHelper.showError(context, AppConstants.loginFailedMessage);
     }
   }
 
@@ -61,56 +62,63 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.primaryColor,
+      appBar: AppBar(
+        title: const Text('Login'),
+      ),
       body: Center(
-        child: Container(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _usernameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Username',
-                      prefixIcon: Icon(Icons.person_outline),
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock_outline),
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: _login,
-                      child: const Text('Login', style: TextStyle(fontSize: 16)),
-                    ),
-                  ),
-                ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Selamat Datang di Resep Masakan',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _usernameController,
+                decoration: InputDecoration(
+                  labelText: 'Username',
+                  prefixIcon: const Icon(Icons.person_outline),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
+                  onPressed: _login,
+                  child: const Text('Login', style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ],
           ),
         ),
       ),

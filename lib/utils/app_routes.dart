@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../screens/login_screen.dart';
-import '../screens/register_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/list_screen.dart';
 import '../screens/detail_screen.dart';
@@ -18,7 +17,6 @@ class AppRoutes {
 
   static Map<String, WidgetBuilder> get routes => {
         login: (context) => const LoginScreen(),
-        register: (context) => const RegisterScreen(),
         home: (context) => const HomeScreen(),
         list: (context) => const ListScreen(),
         detail: (context) => const DetailScreen(),

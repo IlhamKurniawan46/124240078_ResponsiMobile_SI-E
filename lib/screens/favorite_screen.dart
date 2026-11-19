@@ -22,7 +22,7 @@ class FavoriteScreen extends StatefulWidget {
 
 class _FavoriteScreenState extends State<FavoriteScreen> {
   late final StorageService _storageService;
-  List<RecipeModel> _favorites = [];
+  List<Recipe> _favorites = [];
   bool _isLoading = true;
 
   @override
@@ -46,13 +46,11 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
     }
   }
 
-  Future<void> _handleRemoveFavorite(RecipeModel item) async {
-    await _storageService.removeFavorite(item.type, item.id);
+  Future<void> _handleRemoveFavorite(Recipe item) async {
+    await _storageService.removeFavorite(item.id);
     if (!mounted) return;
     setState(() {
-      _favorites.removeWhere(
-        (a) => a.type == item.type && a.id == item.id,
-      );
+      _favorites.removeWhere((a) => a.id == item.id);
     });
     SnackbarHelper.showSuccess(
       context,
@@ -60,10 +58,10 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
     );
   }
 
-  Widget _buildThumbnail(String? imageUrl) {
+  Widget _buildThumbnail(String imageUrl) {
     const double size = 70.0;
 
-    if (imageUrl == null || imageUrl.trim().isEmpty) {
+    if (imageUrl.trim().isEmpty) {
       return Container(
         width: size,
         height: size,
@@ -124,7 +122,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
     );
   }
 
-  Widget _buildItemCard(RecipeModel item) {
+  Widget _buildItemCard(Recipe item) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       shape: RoundedRectangleBorder(
@@ -133,13 +131,12 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
       elevation: 2,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        key: Key('fav_card_${item.type.name}_${item.id}'),
+        key: Key('fav_card_${item.id}'),
         onTap: () async {
           await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => DetailScreen(
-                type: item.type,
                 id: item.id,
                 apiService: widget.apiService,
                 storageService: _storageService,
@@ -155,7 +152,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _buildThumbnail(item.imageUrl),
+              _buildThumbnail(item.image),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -172,7 +169,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      item.tags.isNotEmpty ? item.tags : 'Unknown',
+                      '${item.cuisine} • ${item.difficulty}',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey.shade700,
@@ -182,7 +179,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                 ),
               ),
               IconButton(
-                key: Key('fav_remove_btn_${item.type.name}_${item.id}'),
+                key: Key('fav_remove_btn_${item.id}'),
                 icon: const Icon(
                   Icons.favorite,
                   color: Colors.red,
@@ -243,7 +240,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Favorite Content'),
+        title: const Text('Favorite'),
       ),
       body: _buildBody(),
     );

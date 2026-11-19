@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'screens/list_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/storage_service.dart';
 import 'utils/app_routes.dart';
@@ -7,16 +7,16 @@ import 'utils/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const SpaceflightApp());
+  runApp(const RecipeApp());
 }
 
-class SpaceflightApp extends StatelessWidget {
-  const SpaceflightApp({super.key});
+class RecipeApp extends StatelessWidget {
+  const RecipeApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Spaceflight News',
+      title: 'Resep Masakan',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: const AuthGate(),
@@ -25,7 +25,6 @@ class SpaceflightApp extends StatelessWidget {
   }
 }
 
-/// Initial authentication gate widget checking login session via FutureBuilder
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -45,7 +44,7 @@ class AuthGate extends StatelessWidget {
         }
 
         if (snapshot.hasData && snapshot.data == true) {
-          return const HomeScreen();
+          return const ListScreen();
         }
 
         return const LoginScreen();
